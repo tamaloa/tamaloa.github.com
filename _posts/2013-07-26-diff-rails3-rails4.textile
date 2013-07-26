@@ -31,3 +31,8 @@ The screenshot shows not too many large differences in the directory structure o
 * and of course plugins dir has finally been removed (remember all those deprecation warnings :)
 
 !{{ site.url }}/assets/images/rails-3.2.14_vs_rails-4.0.0_diff.png(A diff of a newly created rails 3 vs rails 4 app)!
+
+
+h3. Conclusion
+
+...some time later :)
