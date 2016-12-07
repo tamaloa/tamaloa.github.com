@@ -81,7 +81,7 @@ Embedded content from [HTML5 Boilerplate](http://j.mp/rP0wmY)
 No styleguide reference.
 */
 
-img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; }
+img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; width: 100%; }
 svg:not(:root) { overflow: hidden; } /* Correct overflow not hidden in IE9 */
 
 /*
