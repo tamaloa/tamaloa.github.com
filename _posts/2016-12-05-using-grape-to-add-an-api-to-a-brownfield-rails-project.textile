@@ -122,3 +122,7 @@ But the suggested path 'localhost:3000/swagger_doc' does not work for us. We jus
 !{{ site.url }}/assets/images/grape/grape-swagger-ui-working.png(Yeah)!
 
 Nice! A usable and intuitive documentation for our API. Some polishing still has to be done (for instance where will we set 'API title'?) and some details are still puzzeling (i.e. why is there a 0.0.1 version shown in the footer when we specified v1 as our API version?). But all in all it's great :)
+
+.h3 Conclusion
+
+So all in all we have a nice API with great documentation generated for us. On the downside it is a pitty many of our trusted rails tools do not work and/or have to be reinvented. We will see how much overhead this adds to further developing the API and adding more advanced features such as authentication, caching or using JSON:API as format.
