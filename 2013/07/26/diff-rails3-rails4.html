@@ -50,35 +50,43 @@
 			<div class="bd">
 				<div class="entry-content">
 					
+<p>In the process of migrating to rails 4 i like to know what has changed
+for the “default” app. The easiest way to check is to generate two new
+rails apps using the different rails versions and then comparing with a
+diff tool (i like meld :).</p>
 
-In the process of migrating to rails 4 i like to know what has changed for the "default" app. The easiest way to check is to generate two new rails apps using the different rails versions and then comparing with a diff tool (i like meld :).
-
-<pre>
-gem install rails -v 3.2.14
+<div class="highlighter-rouge"><pre class="highlight"><code>gem install rails -v 3.2.14
 rails new rails-3.2.14
 gem install rails -v 4.0.0
 rails new rails-4.0.0
 
 meld rails-3.2.14 rails-4.0.0
-</pre>
+</code></pre>
+</div>
 
-The screenshot shows not too many large differences in the directory structure or filewise. Noticable is
+<p>The screenshot shows not too many large differences in the directory
+structure or filewise. Noticable is</p>
 
-* .gitkeep was renamed to .keep which i think is nice because we use mercurial :)
-* a default index page (with corresponding image) no longer exists .. phew, saves deleting it every time
-* the new concerns dir is added to app/controllers and app/models
-* executables now have their place in bin
-* config for filter_paramter_logging was added
-* there no longer is a doc dir (who used it anyway?)
-* test dirs now correspond to what is tested (unit == model, functional == controller) and new ones for helper and mailer testing were added.
-* and of course plugins dir has finally been removed (remember all those deprecation warnings :)
+<ul>
+  <li>.gitkeep was renamed to .keep which i think is nice because we use
+mercurial :)</li>
+  <li>a default index page (with corresponding image) no longer exists ..
+phew, saves deleting it every time</li>
+  <li>the new concerns dir is added to app/controllers and app/models</li>
+  <li>executables now have their place in bin</li>
+  <li>config for filter_paramter_logging was added</li>
+  <li>there no longer is a doc dir (who used it anyway?)</li>
+  <li>test dirs now correspond to what is tested (unit  model, functional 
+controller) and new ones for helper and mailer testing were added.</li>
+  <li>and of course plugins dir has finally been removed (remember all
+those deprecation warnings :)</li>
+</ul>
 
-!/assets/images/rails-3.2.14_vs_rails-4.0.0_diff.png(A diff of a newly created rails 3 vs rails 4 app)!
+<p><img src="/assets/images/rails-3.2.14_vs_rails-4.0.0_diff.png" alt="A diff of a newly created rails 3 vs rails 4 app" /></p>
 
+<h3 id="conclusion">Conclusion</h3>
 
-h3. Conclusion
-
-...some time later :)
+<p>…some time later :)</p>
 
 					<div class="meta">
 						<p class="date-publish">

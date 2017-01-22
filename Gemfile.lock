@@ -1,7 +1,6 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    RedCloth (4.3.2)
     colorator (0.1)
     ffi (1.15.5)
     jekyll (3.0.5)
@@ -42,7 +41,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  RedCloth
   jekyll (~> 3.0.0)
   jgd
 

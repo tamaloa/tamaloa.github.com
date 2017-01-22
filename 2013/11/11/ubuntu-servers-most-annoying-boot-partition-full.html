@@ -50,47 +50,86 @@
 			<div class="bd">
 				<div class="entry-content">
 					
+<p>Ubuntu server editions (up to 12.04LTS) are mostly easy to take care of.
+With unattended security updates activated (as recommended by the
+installer) it is okay to focus on your own applications and to rely on
+the main system being okay.
+Ubuntu frequently releases updated kernel images which are automatically
+installed. This works very well and old images are kept just in case the
+newly installed image fails.
+Unfortunately older kernel images are kept indefinitely. This leads to
+the /boot partition slowly filling up. Additionally the default
+partioning (at least with a 100GB disk) provisions only \~230M for
+/boot. Thus in under a year /boot is filled which may cause the whole
+system to lock down (google for “ubuntu /boot partition full” and be
+shocked :)).</p>
 
-Ubuntu server editions (up to 12.04LTS) are mostly easy to take care of. With unattended security updates activated (as recommended by the installer) it is okay to focus on your own applications and to rely on the main system being okay.
-Ubuntu frequently releases updated kernel images which are automatically installed. This works very well and old images are kept just in case the newly installed image fails.
-Unfortunately older kernel images are kept indefinitely. This leads to the /boot partition slowly filling up. Additionally the default partioning (at least with a 100GB disk) provisions only ~230M for /boot. Thus in under a year /boot is filled which may cause the whole system to lock down (google for "ubuntu /boot partition full" and be shocked :)).
+<p>It seems wise to keep a few older images around just in case, but not 20
+or more! The ubuntu guys seem to have noticed this as well <sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup> and
+newer Ubuntu releases (since 13.04) have a single command
+<code class="highlighter-rouge">sudo apt-get autoremove --purge</code> to remove all old kernels except for
+the most recent two. Unfortunately there exists no single script to call
+in the most recent server-LTS and selecting all kernels by hand for
+several servers is really annoying. [UPDATE] I am now experiencing the
+same problem of /boot filling up on 14.04 server machines and the before
+mentioned single command does not take care of this. So the following
+script is also used for 14.04 servers.[/UPDATE]</p>
 
-It seems wise to keep a few older images around just in case, but not 20 or more! The ubuntu guys seem to have noticed this as well [1] and newer Ubuntu releases (since 13.04) have a single command @sudo apt-get autoremove --purge@ to remove all old kernels except for the most recent two. Unfortunately there exists no single script to call in the most recent server-LTS and selecting all kernels by hand for several servers is really annoying. [UPDATE] I am now experiencing the same problem of /boot filling up on 14.04 server machines and the before mentioned single command does not take care of this. So the following script is also used for 14.04 servers.[/UPDATE]
+<p>The scripts on the web either removed all old kernels (keeping only the
+current and thus leaving no rollback opportunity) <sup id="fnref:2"><a href="#fn:2" class="footnote">2</a></sup> or deleted all
+except for the youngest two (the current kernel could be older) <sup id="fnref:3"><a href="#fn:3" class="footnote">3</a></sup>.
+Thus i put together the following script which purges all kernel images
+and headers except for the current running kernel (which is the output
+of uname -r), the actual base kernel and the two last kernels in the
+listing (propably the most recent ones and propably at least one has run
+successfully before :).</p>
 
-The scripts on the web either removed all old kernels (keeping only the current and thus leaving no rollback opportunity) [2] or deleted all except for the youngest two (the current kernel could be older) [3]. Thus i put together the following script which purges all kernel images and headers except for the current running kernel (which is the output of uname -r), the actual base kernel and the two last kernels in the listing (propably the most recent ones and propably at least one has run successfully before :).
+<div class="highlighter-rouge"><pre class="highlight"><code><span class="c">#!/bin/bash</span>
 
-<pre>
-#!/bin/bash
+dpkg --get-selections | <span class="sb">`</span><span class="c">#show all installed packages` \</span>
+  grep <span class="s1">'linux-image-*'</span> | <span class="sb">`</span><span class="c">#select all installed images` \</span>
+  awk <span class="s1">'{print $1}'</span> | <span class="sb">`</span><span class="c">#select only package name)` \</span>
+  egrep -v <span class="s2">"linux-image-</span><span class="k">$(</span>uname -r<span class="k">)</span><span class="s2">|linux-image-generic"</span> | <span class="sb">`</span><span class="c">#remove current and base kernel from list` \</span>
+  head -n -2 | <span class="sb">`</span><span class="c">#remove two recent kernels from list` \</span>
+  sed <span class="s1">'s/^linux-image-\(.*\)$/\1/'</span> | <span class="sb">`</span><span class="c">#capture image version` \</span>
+  <span class="k">while </span><span class="nb">read </span>n
+  <span class="k">do 
+    </span><span class="nb">echo</span> <span class="s1">'Purging unneeded kernel images and headers for: '</span><span class="nv">$n</span>
+    sudo apt-get --yes purge linux-image-<span class="nv">$n</span>    <span class="c">#purge images</span>
+    sudo apt-get --yes purge linux-headers-<span class="nv">$n</span>  <span class="c">#purge headers</span>
+  <span class="k">done</span>
+</code></pre>
+</div>
 
-dpkg --get-selections | `#show all installed packages` \
-  grep 'linux-image-*' | `#select all installed images` \
-  awk '{print $1}' | `#select only package name)` \
-  egrep -v "linux-image-$(uname -r)|linux-image-generic" | `#remove current and base kernel from list` \
-  head -n -2 | `#remove two recent kernels from list` \
-  sed 's/^linux-image-\(.*\)$/\1/' | `#capture image version` \
-  while read n
-  do 
-    echo 'Purging unneeded kernel images and headers for: '$n
-    sudo apt-get --yes purge linux-image-$n    #purge images
-    sudo apt-get --yes purge linux-headers-$n  #purge headers
-  done
-</pre>
+<p>If added to roots crontab via</p>
 
-If added to roots crontab via
-<pre>
-@reboot /root/purge-unneeded-kernels.sh
-</pre>
-this hopefully keeps /boot well below 50% df.
+<div class="highlighter-rouge"><pre class="highlight"><code>@reboot /root/purge-unneeded-kernels.sh
+</code></pre>
+</div>
 
-Note - the "adding comments to multiline shell command via backticks" worked for me in some cases but in some i had to remove them to run the script :/
+<p>\
+this hopefully keeps /boot well below 50% df.</p>
 
-fn1."lists.ubuntu.com Distro-provided mechanism to clean up old kernels":https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034775.html
+<p>Note - the “adding comments to multiline shell command via backticks”
+worked for me in some cases but in some i had to remove them to run the
+script :/</p>
 
-fn2."ubuntugenius.wordpress.com Blogpost":http://ubuntugenius.wordpress.com/2011/01/08/ubuntu-cleanup-how-to-remove-all-unused-linux-kernel-headers-images-and-modules/
-
-fn3."lists.ubuntu.com shellscript":https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034767.html
-
-
+<div class="footnotes">
+  <ol>
+    <li id="fn:1">
+      <p><a href="https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034775.html">lists.ubuntu.com Distro-provided mechanism to clean up old
+kernels</a> <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:2">
+      <p><a href="http://ubuntugenius.wordpress.com/2011/01/08/ubuntu-cleanup-how-to-remove-all-unused-linux-kernel-headers-images-and-modules/">ubuntugenius.wordpress.com
+Blogpost</a> <a href="#fnref:2" class="reversefootnote">&#8617;</a></p>
+    </li>
+    <li id="fn:3">
+      <p><a href="https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034767.html">lists.ubuntu.com
+shellscript</a> <a href="#fnref:3" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
 
 					<div class="meta">
 						<p class="date-publish">

@@ -1,0 +1,400 @@
+
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7 ie" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8 ie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9 ie" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Using Grape to add an API to a brownfield Rails Project</title>
+	<meta name="author" content="Michael">
+	<link href='/assets/themes/the-minimum/css/style.css' rel="stylesheet" media="all">
+	<link href="http://feeds.feedburner.com/" rel="alternate" title="Using Grape to add an API to a brownfield Rails Project" type="application/atom+xml">
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.0.6/modernizr.min.js"></script>
+</head>
+<body>
+
+<div id="page" class="hentry">
+	<header class="the-header">
+		<div class="unit-head">
+			<div class="unit-inner unit-head-inner">
+				<p class="logo"><a href="/">Tamaloa's Blog</a></p>
+				<nav class="nav-global">
+					<ul>
+						<li class="archive"><a href="/archive.html">archive</a></li>
+						<li class="page"><a href="/pages.html">pages</a></li>
+						<li class="category"><a href="/categories.html">categories</a></li>
+						<li class="tag"><a href="/tags.html">tags</a></li>
+					</ul>
+				</nav>
+			</div><!-- unit-inner -->
+		</div><!-- unit-head -->
+	</header>
+	<div class="body" role="main">
+		<div class="unit-body">
+			<div class="unit-inner unit-body-inner">
+				<div class="entry-content">
+					
+<article class="unit-article layout-post">
+	<div class="unit-inner unit-article-inner">
+		<div class="content">
+			<header>
+				<div class="unit-head">
+					<div class="unit-inner unit-head-inner">
+						<h1 class="h2 entry-title">Using Grape to add an API to a brownfield Rails Project</h1>
+					</div><!-- unit-inner -->
+				</div><!-- unit-head -->
+			</header>
+
+			<div class="bd">
+				<div class="entry-content">
+					
+<p>Starting point: We needed a small and simple API added to a several year
+old rails 4.2 project. We already have some APIs in use in this project
+which use basic rails controllers, ActiveModel, and sometimes jbuilder.
+So quickest would be to just build the API as we did with all the
+others. Maybe even use newish rails 5 ActionController::API and use
+<a href="http://jsonapi.org/">json:api</a> setting to have some kind of
+standardization. Up to now we never needed real documentation (beside
+the code) as we ourselves consumed the APIs. What seems a nice option
+for API-docus is to use the test cases to generate the documentation as
+does
+<a href="https://github.com/zipmark/rspec_api_documentation">rspec_api_documentation</a>
+or what can be done by writing cucumber files (see for example <a href="http://www.relishapp.com/cucumber/cucumber/docs/cli/dry-run">cucumber
+docs on
+relishapp</a>
+).</p>
+
+<p>BUT: I heard a lightening talk at this years
+<a href="http://www.wrocloverb.com/">wroc_love.rb</a> by
+<a href="https://github.com/LeFnord">LeFnord</a> on the <a href="http://www.ruby-grape.org/">grape api
+gem</a> and his little baby
+<a href="https://github.com/ruby-grape/grape-swagger">grape-swagger</a> which
+provides beautiful API documentation out of the box.</p>
+
+<p>As our new API is to be consumed by a third Party we do need some
+documentation this time. Also we have some time to spare and are looking
+for a long term solution to our API-needs. We therefor decided to try
+out grape which is a framework independend of rails and does seem to do
+quite a lot of stuff in a reasonable manner :)</p>
+
+<h3 id="our-first-grape-endpoint">Our first grape endpoint</h3>
+
+<p>First of to find out what we need to include to use grape inside a rails
+project. There is a gem which wraps the varios best practices of
+integrating grape into rails
+(<a href="http://mepatterson.github.io/grape_ape_rails/">grape_ape_rails</a> ) but
+it has not been maintained recently (last commit 2 years ago). Also it
+propably is better to add what is needed step by step to get to know the
+grape ecosystem. We therefor start of with adding</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>gem 'grape'
+</code></pre>
+</div>
+
+<p>which is version 0.18.0 in our case.</p>
+
+<p>Next up we have a look at the README. Wow - pages over pages. A lot more
+than the usual rails gems which consist of a five steps and finish
+approach. A bit overwhelming at first, especially as one has to filter
+out what’s necessary for a rails project.</p>
+
+<p>We create our first API endpoint (i call it that, found no other fitting
+name) by placing a ruby file under app/api. We have to follow rails
+conventions for naming classes/modules (i.e. filenames + folders) but we
+do not need to create a v1 folder to version our API. Instead grape
+allows us to define the version (and what strategy to use e.g. path or
+header) inside our endpoint.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>class Nirvana &lt; Grape::API
+  version 'v1'
+  format :json
+  prefix :api
+
+  resource :cities do
+    desc 'Return ten cities matching the query'
+
+    params do
+      requires :q, type: String
+    end
+    get :all do
+      City.search(params['q']).limit(10)
+    end
+  end
+
+end
+</code></pre>
+</div>
+
+<p>For our first tryout we include a simple cities resource using a query
+param.</p>
+
+<p>Next up a test (yea next time we’ll write that one first ;) ). we create
+a test/api directory to bundle up everything api related. The test does
+not differ much from usual model tests although this is more like an
+rails controller test.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>require 'test_helper'
+
+class NirvanaTest &lt; ActiveSupport::TestCase
+  include Rack::Test::Methods
+
+  def app
+    Rails.application
+  end
+
+  test 'GET /api/statuses/public_timeline returns an empty array of statuses' do
+    get '/api/v1/nirvana/cities'
+    assert last_response.ok?
+    assert_equal [], JSON.parse(last_response.body)
+  end
+
+end
+</code></pre>
+</div>
+
+<p>We need the app method so rack-test knows what to use. I wonder if there
+will be a point at which it might be nice to have a stricter seperation
+of testing as in rails (models, controllers, integration). Although an
+API of course is diffent.</p>
+
+<p>First test run of course fails. We have not yet mounted the API nor
+loaded the app/api directory. Unfortunately test is still red. Now comes
+the hard part. How do we debug Grape inside of rails? First guess is to
+validate we actually are using the right route. Unfortunately our handy
+‘rake routes’ does not help with this. We therefor inspect
+‘Nirvana.routes’ on the console.</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code> &gt; Nirvana.routes.map{|route| route.pattern.path}
+ =&gt; ["/api/:version/cities/all(.json)"] 
+</code></pre>
+</div>
+
+<p>Okay, so the route consists of api-prefix + version + resource + action.
+I wonder if this is fixed or other parts may be inserted. It should be
+easier to print out grape routes than it is today. I tried out the
+<a href="https://github.com/pmq20/grape-rails-routes">grape-rails-routes</a> gem
+but it does not seem to work with recent grape versions. Better luck
+with <a href="https://github.com/reprah/grape-raketasks">grape-raketasks</a> which
+works although the printout could be a bit more compact:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>$ rake grape_raketasks:routes
+ANCHOR:          true
+API:             Nirvana
+DESCRIPTION:     "Return ten cities matching the query"
+FORWARD_MATCH:   nil
+METHOD:          "GET"
+NAMESPACE:       "/cities"
+PARAMS:          {"q"=&gt;{:required=&gt;true, :type=&gt;"String"}}
+PREFIX:          :api
+REQUIREMENTS:    {}
+SETTINGS:        {:description=&gt;{:description=&gt;"Return ten cities matching the query", :params=&gt;{"q"=&gt;{:required=&gt;true, :type=&gt;"String"}}}, :declared_params=&gt;[:q]}
+SUFFIX:          "(.json)"
+VERSION:         "v1"
+</code></pre>
+</div>
+
+<p>And thats for only one single endpoint - good luck with a real API.</p>
+
+<h3 id="and-now-the-documentation">And now the documentation</h3>
+
+<p>Next up we want to generate some beautiful documentation for our API.
+For this we wil be using the grape-swagger gem which generates the docs.
+As we want to directly include them in our rails project we start off
+with the
+<a href="https://github.com/ruby-grape/grape-swagger-rails">grape-swagger-rails</a>
+gem which allows us to mount the swagger UI as an engine. So off we go,
+follow the README, add gem, create initializer and open the swagger
+UI…</p>
+
+<p><img src="/assets/images/grape/grape-swagger-rails-ui-cant-read.png" alt="Swagger UI is not working yet" title="Swagger UI is not working yet" /></p>
+
+<p>Hmm… only kinda works :) We had to specify an url and app_url in an
+initializer. The example url was just a path to a json file. I guess
+it’s supposed to be the ‘Swagger API schema’. Question is how to
+generate this. Seems as if swagger itself is not included in the
+grape-swagger-rails gem which in my opinion does not make sense or at
+least is not what one would expect from a rails gem.</p>
+
+<p>So let’s install
+<a href="https://github.com/ruby-grape/grape-swagger">grape-swagger</a> and set it
+up. We follow the README and create a root node:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>require 'grape-swagger'
+
+class Root &lt; Grape::API
+  mount Nirvana
+  add_swagger_documentation
+end
+</code></pre>
+</div>
+
+<p>\
+But the suggested path ‘localhost:3000/swagger_doc’ does not work for
+us. We just end up with an 404 from our rails app. Our rake grape routes
+gem also gives no hint as to which path to use. So after trying out a
+whole lot of different routes (for instance
+‘localhost:3000/api/v1/swagger_doc’) we still do not know how to
+actually generate the swagger schema. Then lightening struck - the
+example given by grape-swagger mounts a couple of other endpoints. I
+thought this was only due to whats supposed to be included in the docs
+but then i realized the Root node is the one which should be mounted
+inside routes.rb. Only then the swagger_doc is accessible. For now the
+easiest is to simply include the ‘add_swagger_documentation’ into our
+initial cities endpoint. Five seconds later after changing the schema
+url to ‘api/v1/swagger_doc’:</p>
+
+<p><img src="/assets/images/grape/grape-swagger-ui-working.png" alt="Yeah" title="Yeah" /></p>
+
+<p>Nice! A usable and intuitive documentation for our API. Some polishing
+still has to be done (for instance where will we set ‘API title’?) and
+some details are still puzzeling (i.e. why is there a 0.0.1 version
+shown in the footer when we specified v1 as our API version?). But all
+in all it’s great :)</p>
+
+<h3 id="conclusion">Conclusion</h3>
+
+<p>So all in all we have a nice API with great documentation generated for
+us. On the downside it is a pitty many of our trusted rails tools do not
+work and/or have to be reinvented. We will see how much overhead this
+adds to further developing the API and adding more advanced features
+such as authentication, caching or using JSON:API as format.</p>
+
+					<div class="meta">
+						<p class="date-publish">
+							Published: 
+							<date class="date-pub" title="2016-12-05T00:00:00+01:00" datetime="2016-12-05T00:00:00+01:00" pubdate>
+							<span class="month"><abbr>December</abbr></span>
+							<span class="day">05</span>
+							<span class="year">2016</span>
+							</date>
+						</p>
+						<ul class="list-category list-linear">
+							<li class="list-head">category: </li>
+							
+							
+
+
+  
+    
+  
+
+
+						</ul>
+						<ul class="list-tag list-linear">
+							<li class="list-head">tags: </li>
+							
+							
+
+
+  
+     
+    	<li><a href="/tags.html#rails-ref">rails <span>3</span></a></li>
+     
+    	<li><a href="/tags.html#grape-ref">grape <span>2</span></a></li>
+     
+    	<li><a href="/tags.html#api-ref">api <span>2</span></a></li>
+    
+  
+
+
+
+						</ul>
+					</div><!-- meta -->
+				</div><!-- entry-content -->
+                <div class="misc-content">
+                    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'tamaloasblog'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+                </div>
+                <!-- misc-content -->
+
+            </div><!-- bd -->
+			<footer class="unit-foot">
+				<div class="unit-inner unit-foot-inner">
+					<nav class="pagination">
+						<ul>
+							
+							<li class="prev"><a class="internal" rel="prev"  href="/2013/11/11/ubuntu-servers-most-annoying-boot-partition-full" title="View Working around ubuntu server's most annoying /boot partition full">&laquo; Working around ubuntu server's most annoying /boot partition full</a></li>
+							
+							
+							<li class="pipe"> | </li>
+							
+							
+							<li class="next"><a class="internal" rel="next"  href="/2016/12/08/more-advanced-features-for-our-grape-api" title="View More Advanced Features for Our Grape API">More Advanced Features for Our Grape API &raquo;</a></li>
+							
+						</ul>
+					</nav>
+					<p class="gotop">
+						<a href="#page">Back to Top</a>
+					</p>
+				</div>
+			</footer>
+
+		</div><!-- content -->
+	</div><!-- unit-inner -->
+</article>
+
+
+				</div>
+			</div><!-- unit-inner -->
+		</div><!-- unit-body -->
+	</div><!-- body -->
+	<footer class="the-footer">
+		<div class="unit-foot">
+			<div class="unit-inner unit-foot-inner">
+				<div class="misc vcard">
+					<h4>about</h4>
+					<ul>
+						<li class="contact"><address><span class="author fn n">Michael</span></address></li>
+						<li class="github"><a href="http://github.com/tamaloa/" rel="me">github.com/tamaloa</a></li>
+					</ul>
+				</div><!-- misc -->
+				<p class="licence">
+					Theme: <a href="http://layouts-the.me">the_minimum</a> based on <a href="http://jekyllbootstrap.com/">Jekyll-bootstrap</a>.<br>
+					Powered by <a href="https://github.com/mojombo/jekyll">Jekyll</a>.
+				</p>
+			</div><!-- unit-foot-inner -->
+		</div><!-- unit-foot -->
+	</footer>
+</div><!-- page -->
+<script>
+	(function(d, s) {
+		var js, fjs = d.getElementsByTagName(s)[0], load = function(url, id) {
+		if (d.getElementById(id)) {return;}
+		js = d.createElement(s); js.src = url; js.id = id;
+		fjs.parentNode.insertBefore(js, fjs);
+		};
+	load('//platform.twitter.com/widgets.js', 'tweetjs');
+	// load('https://apis.google.com/js/plusone.js', 'gplus1js'); // Checkout http://j.mp/ApDgMr for usage html for this is <div class="g-plusone" data-size="medium"></div>
+	// load('//connect.facebook.net/en_US/all.js#xfbml=1', 'fbjssdk'); // Checkout http://j.mp/wZw2xR for using open graph protorol html for this is <div class="fb-like" data-href="/2016/12/05/using-grape-to-add-an-api-to-a-brownfield-rails-project" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false" data-font="verdana"></div>
+	}(document, 'script'));
+</script>
+<script>
+/*! A fix for the iOS orientationchange zoom bug.Script by @scottjehl, rebound by @wilto. MIT License.*/
+(function(j){var i=j.document;if(!i.querySelectorAll){return}var l=i.querySelectorAll("meta[name=viewport]")[0],a=l&&l.getAttribute("content"),h=a+", maximum-scale=1.0",d=a+", maximum-scale=10.0",g=true,c=j.orientation,k=0;if(!l){return}function f(){l.setAttribute("content",d);g=true}function b(){l.setAttribute("content",h);g=false}function e(m){c=Math.abs(j.orientation);k=Math.abs(m.gamma);if(k>8&&c===0){if(g){b()}}else{if(!g){f()}}}j.addEventListener("orientationchange",f,false);j.addEventListener("deviceorientation",e,false)})(this);
+</script>
+
+  
+</body>
+</html>
+
