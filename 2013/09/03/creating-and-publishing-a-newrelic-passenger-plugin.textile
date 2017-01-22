@@ -9,7 +9,7 @@
 	<meta name="viewport" content="width=device-width,initial-scale=1">
 	<title>Creating And Publishing A New Relic Passenger Plugin</title>
 	<meta name="author" content="Michael">
-	<link href='/assets/themes//css/style.css' rel="stylesheet" media="all">
+	<link href='/assets/themes/the-minimum/css/style.css' rel="stylesheet" media="all">
 	<link href="http://feeds.feedburner.com/" rel="alternate" title="Creating And Publishing A New Relic Passenger Plugin" type="application/atom+xml">
 	<script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.0.6/modernizr.min.js"></script>
 </head>
