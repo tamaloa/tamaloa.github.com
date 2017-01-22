@@ -1,0 +1,15 @@
+
+http://tamaloa.github.io/archive
+http://tamaloa.github.io/atom.xml
+http://tamaloa.github.io/categories
+http://tamaloa.github.io/
+http://tamaloa.github.io/pages
+http://tamaloa.github.io/rss.xml
+http://tamaloa.github.io/sitemap.txt
+http://tamaloa.github.io/tags
+
+http://tamaloa.github.io/2016/12/08/more-advanced-features-for-our-grape-api
+http://tamaloa.github.io/2016/12/05/using-grape-to-add-an-api-to-a-brownfield-rails-project
+http://tamaloa.github.io/2013/11/11/ubuntu-servers-most-annoying-boot-partition-full
+http://tamaloa.github.io/2013/09/03/creating-and-publishing-a-newrelic-passenger-plugin
+http://tamaloa.github.io/2013/07/26/diff-rails3-rails4

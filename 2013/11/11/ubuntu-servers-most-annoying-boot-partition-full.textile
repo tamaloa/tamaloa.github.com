@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7 ie" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8 ie" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9 ie" lang="en"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>Working around ubuntu server's most annoying /boot partition full</title>
+	<meta name="author" content="Michael">
+	<link href='/assets/themes//css/style.css' rel="stylesheet" media="all">
+	<link href="http://feeds.feedburner.com/" rel="alternate" title="Working around ubuntu server's most annoying /boot partition full" type="application/atom+xml">
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/modernizr/2.0.6/modernizr.min.js"></script>
+</head>
+<body>
+
+<div id="page" class="hentry">
+	<header class="the-header">
+		<div class="unit-head">
+			<div class="unit-inner unit-head-inner">
+				<p class="logo"><a href="/">Tamaloa's Blog</a></p>
+				<nav class="nav-global">
+					<ul>
+						<li class="archive"><a href="/archive.html">archive</a></li>
+						<li class="page"><a href="/pages.html">pages</a></li>
+						<li class="category"><a href="/categories.html">categories</a></li>
+						<li class="tag"><a href="/tags.html">tags</a></li>
+					</ul>
+				</nav>
+			</div><!-- unit-inner -->
+		</div><!-- unit-head -->
+	</header>
+	<div class="body" role="main">
+		<div class="unit-body">
+			<div class="unit-inner unit-body-inner">
+				<div class="entry-content">
+					
+<article class="unit-article layout-post">
+	<div class="unit-inner unit-article-inner">
+		<div class="content">
+			<header>
+				<div class="unit-head">
+					<div class="unit-inner unit-head-inner">
+						<h1 class="h2 entry-title">Working around ubuntu server's most annoying /boot partition full</h1>
+					</div><!-- unit-inner -->
+				</div><!-- unit-head -->
+			</header>
+
+			<div class="bd">
+				<div class="entry-content">
+					
+
+Ubuntu server editions (up to 12.04LTS) are mostly easy to take care of. With unattended security updates activated (as recommended by the installer) it is okay to focus on your own applications and to rely on the main system being okay.
+Ubuntu frequently releases updated kernel images which are automatically installed. This works very well and old images are kept just in case the newly installed image fails.
+Unfortunately older kernel images are kept indefinitely. This leads to the /boot partition slowly filling up. Additionally the default partioning (at least with a 100GB disk) provisions only ~230M for /boot. Thus in under a year /boot is filled which may cause the whole system to lock down (google for "ubuntu /boot partition full" and be shocked :)).
+
+It seems wise to keep a few older images around just in case, but not 20 or more! The ubuntu guys seem to have noticed this as well [1] and newer Ubuntu releases (since 13.04) have a single command @sudo apt-get autoremove --purge@ to remove all old kernels except for the most recent two. Unfortunately there exists no single script to call in the most recent server-LTS and selecting all kernels by hand for several servers is really annoying. [UPDATE] I am now experiencing the same problem of /boot filling up on 14.04 server machines and the before mentioned single command does not take care of this. So the following script is also used for 14.04 servers.[/UPDATE]
+
+The scripts on the web either removed all old kernels (keeping only the current and thus leaving no rollback opportunity) [2] or deleted all except for the youngest two (the current kernel could be older) [3]. Thus i put together the following script which purges all kernel images and headers except for the current running kernel (which is the output of uname -r), the actual base kernel and the two last kernels in the listing (propably the most recent ones and propably at least one has run successfully before :).
+
+<pre>
+#!/bin/bash
+
+dpkg --get-selections | `#show all installed packages` \
+  grep 'linux-image-*' | `#select all installed images` \
+  awk '{print $1}' | `#select only package name)` \
+  egrep -v "linux-image-$(uname -r)|linux-image-generic" | `#remove current and base kernel from list` \
+  head -n -2 | `#remove two recent kernels from list` \
+  sed 's/^linux-image-\(.*\)$/\1/' | `#capture image version` \
+  while read n
+  do 
+    echo 'Purging unneeded kernel images and headers for: '$n
+    sudo apt-get --yes purge linux-image-$n    #purge images
+    sudo apt-get --yes purge linux-headers-$n  #purge headers
+  done
+</pre>
+
+If added to roots crontab via
+<pre>
+@reboot /root/purge-unneeded-kernels.sh
+</pre>
+this hopefully keeps /boot well below 50% df.
+
+Note - the "adding comments to multiline shell command via backticks" worked for me in some cases but in some i had to remove them to run the script :/
+
+fn1."lists.ubuntu.com Distro-provided mechanism to clean up old kernels":https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034775.html
+
+fn2."ubuntugenius.wordpress.com Blogpost":http://ubuntugenius.wordpress.com/2011/01/08/ubuntu-cleanup-how-to-remove-all-unused-linux-kernel-headers-images-and-modules/
+
+fn3."lists.ubuntu.com shellscript":https://lists.ubuntu.com/archives/ubuntu-devel/2012-February/034767.html
+
+
+
+					<div class="meta">
+						<p class="date-publish">
+							Published: 
+							<date class="date-pub" title="2013-11-11T00:00:00+01:00" datetime="2013-11-11T00:00:00+01:00" pubdate>
+							<span class="month"><abbr>November</abbr></span>
+							<span class="day">11</span>
+							<span class="year">2013</span>
+							</date>
+						</p>
+						<ul class="list-category list-linear">
+							<li class="list-head">category: </li>
+							
+							
+
+
+  
+    
+  
+
+
+						</ul>
+						<ul class="list-tag list-linear">
+							<li class="list-head">tags: </li>
+							
+							
+
+
+  
+     
+    	<li><a href="/tags.html#ubuntu-ref">ubuntu <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#server-ref">server <span>1</span></a></li>
+    
+  
+
+
+
+						</ul>
+					</div><!-- meta -->
+				</div><!-- entry-content -->
+                <div class="misc-content">
+                    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_developer = 1;
+    var disqus_shortname = 'tamaloasblog'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+                </div>
+                <!-- misc-content -->
+
+            </div><!-- bd -->
+			<footer class="unit-foot">
+				<div class="unit-inner unit-foot-inner">
+					<nav class="pagination">
+						<ul>
+							
+							<li class="prev"><a class="internal" rel="prev"  href="/2013/09/03/creating-and-publishing-a-newrelic-passenger-plugin" title="View Creating And Publishing A New Relic Passenger Plugin">&laquo; Creating And Publishing A New Relic Passenger Plugin</a></li>
+							
+							
+							<li class="pipe"> | </li>
+							
+							
+							<li class="next"><a class="internal" rel="next"  href="/2016/12/05/using-grape-to-add-an-api-to-a-brownfield-rails-project" title="View Using Grape to add an API to a brownfield Rails Project">Using Grape to add an API to a brownfield Rails Project &raquo;</a></li>
+							
+						</ul>
+					</nav>
+					<p class="gotop">
+						<a href="#page">Back to Top</a>
+					</p>
+				</div>
+			</footer>
+
+		</div><!-- content -->
+	</div><!-- unit-inner -->
+</article>
+
+
+				</div>
+			</div><!-- unit-inner -->
+		</div><!-- unit-body -->
+	</div><!-- body -->
+	<footer class="the-footer">
+		<div class="unit-foot">
+			<div class="unit-inner unit-foot-inner">
+				<div class="misc vcard">
+					<h4>about</h4>
+					<ul>
+						<li class="contact"><address><span class="author fn n">Michael</span></address></li>
+						<li class="github"><a href="http://github.com/tamaloa/" rel="me">github.com/tamaloa</a></li>
+					</ul>
+				</div><!-- misc -->
+				<p class="licence">
+					Theme: <a href="http://layouts-the.me">the_minimum</a> based on <a href="http://jekyllbootstrap.com/">Jekyll-bootstrap</a>.<br>
+					Powered by <a href="https://github.com/mojombo/jekyll">Jekyll</a>.
+				</p>
+			</div><!-- unit-foot-inner -->
+		</div><!-- unit-foot -->
+	</footer>
+</div><!-- page -->
+<script>
+	(function(d, s) {
+		var js, fjs = d.getElementsByTagName(s)[0], load = function(url, id) {
+		if (d.getElementById(id)) {return;}
+		js = d.createElement(s); js.src = url; js.id = id;
+		fjs.parentNode.insertBefore(js, fjs);
+		};
+	load('//platform.twitter.com/widgets.js', 'tweetjs');
+	// load('https://apis.google.com/js/plusone.js', 'gplus1js'); // Checkout http://j.mp/ApDgMr for usage html for this is <div class="g-plusone" data-size="medium"></div>
+	// load('//connect.facebook.net/en_US/all.js#xfbml=1', 'fbjssdk'); // Checkout http://j.mp/wZw2xR for using open graph protorol html for this is <div class="fb-like" data-href="/2013/11/11/ubuntu-servers-most-annoying-boot-partition-full" data-send="false" data-layout="button_count" data-width="450" data-show-faces="false" data-font="verdana"></div>
+	}(document, 'script'));
+</script>
+<script>
+/*! A fix for the iOS orientationchange zoom bug.Script by @scottjehl, rebound by @wilto. MIT License.*/
+(function(j){var i=j.document;if(!i.querySelectorAll){return}var l=i.querySelectorAll("meta[name=viewport]")[0],a=l&&l.getAttribute("content"),h=a+", maximum-scale=1.0",d=a+", maximum-scale=10.0",g=true,c=j.orientation,k=0;if(!l){return}function f(){l.setAttribute("content",d);g=true}function b(){l.setAttribute("content",h);g=false}function e(m){c=Math.abs(j.orientation);k=Math.abs(m.gamma);if(k>8&&c===0){if(g){b()}}else{if(!g){f()}}}j.addEventListener("orientationchange",f,false);j.addEventListener("deviceorientation",e,false)})(this);
+</script>
+
+  
+</body>
+</html>
+
