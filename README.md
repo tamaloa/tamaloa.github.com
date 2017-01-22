@@ -6,9 +6,6 @@ The quickest way to start and publish your Jekyll powered blog. 100% compatible 
 
 ### Run Jekyll Locally
 
-
-### Create a Post
-
     $ jekyll serve
 
 Your blog is now available at: http://localhost:4000/.
@@ -27,19 +24,6 @@ The rake task will never overwrite existing posts unless you tell it to.
 ### Publish
 
 After you've added posts or made changes to your theme or other files, simply commit them to your git repo and push the commits up to GitHub.
+Then build the changes locally and push to gh-pages branch using the jgd gem
 
-    $ git add .
-    $ git commit -m "Add new content"
-    $ git push origin master
-
-A GitHub post-commit hook will automatically deploy your changes to your hosted blog. You will receive a success or failure notice for every commit you make to your blog.
-
-
-## Version
-
-0.3.0 - stable and versioned using [semantic versioning](http://semver.org/).
-
-
-## License
-
-[MIT](http://opensource.org/licenses/MIT)
+    $ jgd
